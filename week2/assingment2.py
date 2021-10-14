@@ -103,7 +103,9 @@ def decipher_automated():
         print(decrypted_string)
         for word in searchwords:
             if word in decrypted_string.lower():
-                print(f"Match found!\nDecryptet message: {decrypted_string}")
+                print(
+                    f"Match found! Shift = {decrypt_shift}\nDecryptet message: {decrypted_string}"
+                )
                 search_again = False  # break while loop
                 break  # break for-loop
         if decrypt_shift == 50:

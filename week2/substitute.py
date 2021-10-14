@@ -1,3 +1,4 @@
+#%%
 import random
 from assingment2 import alphabet_lists
 
@@ -65,3 +66,5 @@ elif selected.lower() == "e":
         else:
             encrypted_list.append(ch)
     print(f'Encrypted string: {"".join(encrypted_list)}')
+
+#%%
