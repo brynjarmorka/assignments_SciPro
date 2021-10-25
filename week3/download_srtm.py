@@ -83,10 +83,10 @@ def single_file_download(lng_nr, lat_nr, selected_path):
     try:
         download_file(url, filename, selected_path)
         print(
-            f"Successful download! Filesize: {round(os.path.getsize(selected_path / filename)/1024**2, 2)} MB"
+            f"Successful download of '{filename}'! Filesize: {round(os.path.getsize(selected_path / filename)/1024**2, 2)} MB"
         )
     except urllib.error.HTTPError as exception:
-        print(f"Coordinates not in STRM (probably only ocean).Error: {exception}")
+        print(f"Coordinates not avaliable, probably in the ocean. ({exception})")
 
 
 def run_this_script():
