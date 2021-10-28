@@ -30,6 +30,9 @@ def coordinates2tilepath(lon, lat):
     lon_max = 181
     lat_max = 61
 
+    #  dx = lon + lon_max
+    #  strm_dx = d_lon
+
     lon_srtm = math.ceil((lon + lon_max) / d_lon)
     if lon_srtm == 73:
         lon_srtm = 72
@@ -48,6 +51,8 @@ def coordinates2tilepath(lon, lat):
     # Download Tile
     global newfilename
     newfilename = "DEM_" + tile_name + ".zip"
+
+    # return tile
 
 
 def more_tiles(lon1, lon2, lat1, lat2):
@@ -114,6 +119,9 @@ if __name__ == "__main__":
     if n_arg == 3:
         lon = int(sys.argv[1])
         lat = int(sys.argv[2])
+
+        # tile = coordinates2tilepath(lon, lat)
+        # download_tile(tile)
         coordinates2tilepath(lon, lat)
         download_tile()
     elif n_arg == 5:
