@@ -14,7 +14,7 @@ import sys
 sys.path
 #
 # sys.path.append(
-#     "C:\\Users\\Brynjar\\Desktop\\SciProg\\assignments_SciPro\\week3\\matplotlib.py"
+#     "C:\\Users\\Brynjar\\Desktop\\SciProg\\assignments_SciPro\\week03\\matplotlib.py"
 # ) # was changed to fake_matplotlib.py after the test
 #
 # sys.path

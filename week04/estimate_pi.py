@@ -39,11 +39,12 @@ def make_n_list(start, end):
 def mc_timer(listen):
     print("n,  py,  np")
     np_times = []
+    py_times = []
     for n in listen:
         # #  pure python
-        # start_time = time.perf_counter()
-        # py_pi = monte_carlo_pi_estimate(coords_py(n))
-        # py_time = time.perf_counter() - start_time
+        start_time = time.perf_counter()
+        py_pi = monte_carlo_pi_estimate(coords_py(n))
+        py_time = time.perf_counter() - start_time
         #  numpy
         start_time = time.perf_counter()
         np_pi = monte_carlo_pi_estimate(coords_np(n))
@@ -53,13 +54,14 @@ def mc_timer(listen):
         #     f"{n:.0e}, \t {py_time:.2e}, \t {np_time:.2e} \t\t\t py_pi = {py_pi}, \t\t np_pi = {np_pi}"
         # )
         np_times.append(np_time)
-    return np_times
+        py_times.append(py_time)
+    return np_times, py_times
 
 
 #%% timer loop
 
 n_list = make_n_list(1, 7)
-np_times = mc_timer(n_list)
+np_times, py_times = mc_timer(n_list)
 
 # n,         py,         np
 # 1e+01, 	 4.38e-05, 	 7.45e-05
@@ -75,7 +77,8 @@ np_times = mc_timer(n_list)
 
 #%% plotting
 
-plt.plot(n_list, np_times)
+plt.loglog(n_list, np_times, label="np")
+plt.loglog(n_list, py_times, "-")
 plt.xlabel("N")
 plt.ylabel("time [s]")
 plt.show()
