@@ -1,3 +1,10 @@
+## Added features
+
+- The game variables are printed before the game starts.
+- Vaccination program
+- Change in figure print
+
+
 # Pydemic
 
 A simple [agent-based model](https://en.wikipedia.org/wiki/Agent-based_model) of a pandemic.

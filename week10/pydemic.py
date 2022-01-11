@@ -4,6 +4,8 @@ Based on an original idea by Georg Wohlfahrt and loosely adapted from his
 MATLAB code.
 """
 
+#%%
+
 import time
 from collections import Counter
 import numpy as np
@@ -108,13 +110,14 @@ class Agent:
     It all depends on the gamemaster.
     """
 
-    def __init__(self,
-                 gamemaster,
-                 movemax=5,
-                 time_until_recovery=10,
-                 mortality_rate=0.01,
-                 probability_of_infection=0.5,
-                 ):
+    def __init__(
+        self,
+        gamemaster,
+        movemax=5,
+        time_until_recovery=10,
+        mortality_rate=0.01,
+        probability_of_infection=0.5,
+    ):
 
         self.gamemaster = gamemaster
         self.movemax = movemax
@@ -126,6 +129,8 @@ class Agent:
         self.time_until_recovery = time_until_recovery
         self.mortality_rate = mortality_rate
         self.pos = self.gamemaster.get_random_pos()
+        # Added possibility for vaccination
+        self.vaccinated = False  # if vaccinated or not
 
     def move(self):
         """We move in the domain
@@ -184,17 +189,21 @@ class Agent:
         return self.infected
 
 
-def game(seed=None,  # Repeat random results?
-         n_agents=10000,  # Number of agents in the domain
-         npix=100,  # Domain size
-         nt=100,  # number time steps (days) in the simulation
-         stop_when_extinct=False,  # stop the simulation if the virus is extinct
-         n_initial_infected=5,  # Number of initially infected agents
-         movemax=5,  # Agents max movements
-         time_until_recovery=10,  # Agents days until recovery after infection
-         mortality_rate=0.01,  # Mortality rate at the end of the infection
-         probability_of_infection=0.5,  # Probability of being infected if one other agent is infected
-         ):
+def game(
+    seed=None,  # Repeat random results?
+    n_agents=10000,  # Number of agents in the domain
+    npix=100,  # Domain size
+    nt=100,  # number time steps (days) in the simulation
+    stop_when_extinct=False,  # stop the simulation if the virus is extinct
+    n_initial_infected=5,  # Number of initially infected agents
+    movemax=5,  # Agents max movements
+    time_until_recovery=10,  # Agents days until recovery after infection
+    mortality_rate=0.01,  # Mortality rate at the end of the infection
+    probability_of_infection=0.5,  # Probability of being infected if one other agent is infected
+    # added vaccine
+    vaccination_start=0,  # The vaccination program can start at any day
+    vaccinations_per_day=0,  # Amount of vaccinations per day
+):
     """Run a pandemic simulation.
 
     Returns
@@ -208,15 +217,18 @@ def game(seed=None,  # Repeat random results?
     gamemaster = GameMaster(seed=seed, npix=npix)
     agents = []
     for _ in range(n_agents):
-        agents.append(Agent(gamemaster,
-                            movemax=movemax,
-                            time_until_recovery=time_until_recovery,
-                            mortality_rate=mortality_rate,
-                            probability_of_infection=probability_of_infection)
-                      )
+        agents.append(
+            Agent(
+                gamemaster,
+                movemax=movemax,
+                time_until_recovery=time_until_recovery,
+                mortality_rate=mortality_rate,
+                probability_of_infection=probability_of_infection,
+            )
+        )
 
     # Fate: who is infected
-    for idx in gamemaster.get_random_integer(0, n_agents-1, n_initial_infected):
+    for idx in gamemaster.get_random_integer(0, n_agents - 1, n_initial_infected):
         agents[idx].infected = True
         agents[idx].time_of_infection = gamemaster.t
 
@@ -224,17 +236,52 @@ def game(seed=None,  # Repeat random results?
     gamemaster.n_infected = []
     gamemaster.n_deceased = []
     gamemaster.n_immune = []
+    gamemaster.n_vaccinated = []
 
     # Data containers (its faster to create them only once before the game)
     is_contagious = np.zeros(n_agents, dtype=bool)
     is_deceased = np.zeros(n_agents, dtype=bool)
     is_immune = np.zeros(n_agents, dtype=bool)
+    is_vaccinated = np.zeros(n_agents, dtype=bool)
+
+    # Added the printing of the parameters before the game runs
+    print(
+        f""" \n\nThis is the parameters for this round of pydemic:\n
+            # Repeat random results?                            seed={seed},                                        \n
+            # Number of agents in the domain                    n_agents={n_agents},                                \n
+            # Domain size                                       npix={npix},                                        \n
+            # number time steps (days) in the simulation        nt={nt},                                            \n
+            # stop the simulation if the virus is extinct       stop_when_extinct={stop_when_extinct},              \n
+            # Number of initially infected agents               n_initial_infected={n_initial_infected},            \n
+            # Agents max movements                              movemax={movemax},                                  \n
+            # Agents days until recovery after infection        time_until_recovery={time_until_recovery},          \n
+            # Mortality rate at the end of the infection        mortality_rate={mortality_rate},                    \n
+            # Probability of being infected                     probability_of_infection={probability_of_infection},\n
+            # The vaccination  can start at any day             vaccination_start = {vaccination_start},            \n
+            # Amount of vaccinations per day                    vaccinations_per_day={vaccinations_per_day},        \n  
+
+            \n
+    """
+    )
 
     # Lets go
     while gamemaster.t <= nt:
 
         pos_infected = []
+        vaccines_left_today = vaccinations_per_day
         for i, a in enumerate(agents):
+            # vaccination
+            if (
+                gamemaster.t >= vaccination_start
+                and vaccines_left_today > 0
+                and not a.vaccinated
+                and not a.infected
+                and not a.deceased
+            ):
+                a.vaccinated = True
+                a.immune = True
+                vaccines_left_today -= 1
+
             p = a.move()
             c = a.contagious
             if c:
@@ -243,6 +290,7 @@ def game(seed=None,  # Repeat random results?
             is_contagious[i] = c
             is_deceased[i] = a.deceased
             is_immune[i] = a.immune
+            is_vaccinated[i] = a.vaccinated
 
         pos_infected = Counter(pos_infected)
         for a in agents:
@@ -255,11 +303,15 @@ def game(seed=None,  # Repeat random results?
         gamemaster.n_infected.append(is_contagious.sum())
         gamemaster.n_deceased.append(is_deceased.sum())
         gamemaster.n_immune.append(is_immune.sum())
+        gamemaster.n_vaccinated.append(is_vaccinated.sum())
 
-        print(f"Day {gamemaster.t:3d}. "
-              f"N infected: {gamemaster.n_infected[-1]:5d}. "
-              f"N immune: {gamemaster.n_immune[-1]:5d}. "
-              f"N deceased: {gamemaster.n_deceased[-1]:5d}.")
+        print(
+            f"Day {gamemaster.t:3d},  |  "
+            f"N infected: {gamemaster.n_infected[-1]:5d},  |  "
+            f"N immune: {gamemaster.n_immune[-1]:5d},  |  "
+            f"N deceased: {gamemaster.n_deceased[-1]:5d},  |  "
+            f"N vaccinated: {gamemaster.n_vaccinated[-1]:5d},  |  "
+        )
 
         if stop_when_extinct and gamemaster.n_infected[-1] == 0:
             # Nothing left to compute
@@ -272,17 +324,38 @@ def game(seed=None,  # Repeat random results?
     return gamemaster
 
 
-if __name__ == '__main__':
+#%%
 
+if __name__ == "__main__":
     # Demo game without measures and with measures
     gm1 = game(seed=1)
-    gm2 = game(seed=1, movemax=2)
+    # gm2 = game(seed=1, movemax=2)
+    gm2 = game(seed=1, vaccinations_per_day=150)
+    # Edited plotting
 
-    plt.plot(gm1.n_infected, color='C0', label='Infected')
-    plt.plot(gm2.n_infected, color='C0', linestyle='--')
-    plt.plot(gm1.n_immune, color='C1', label='Immune')
-    plt.plot(gm2.n_immune, color='C1', linestyle='--')
-    plt.plot(gm1.n_deceased, color='C3', label='Deceased (cum)')
-    plt.plot(gm2.n_deceased, color='C3', linestyle='--')
-    plt.legend()
+    fig, ax1 = plt.subplots(figsize=(10, 8))
+    fig.subplots_adjust(right=0.75)
+
+    plt.title("Pydemic results\nDashed lines are population with vaccines")
+
+    ax1.set_xlabel("Time [days]")
+    ax1.set_ylabel("Immune and infected agents")
+
+    ax1.plot(gm1.n_infected, color="C0", label="Infected")
+    ax1.plot(gm2.n_infected, color="C0", linestyle="--")
+    ax1.plot(gm1.n_immune, color="green", label="Immune")
+    ax1.plot(gm2.n_immune, color="green", linestyle="--")
+    ax1.plot(gm2.n_vaccinated, color="pink", linestyle="--", label="Vaccinated")
+    plt.legend(loc="best")
+
+    ax2 = ax1.twinx()
+    ax2.set_ylabel("Deceased (cum)", color="C3")
+    ax2.plot(gm1.n_deceased, color="C3", label="Deceased (cum)")
+    ax2.plot(gm2.n_deceased, color="C3", linestyle="--")
+    ax2.tick_params(axis="y", labelcolor="C3")
+
+    # If more people die, change top to give a nice plotting
+    ax2.set_ylim(bottom=None, top=200)
+
+    plt.legend(loc="best")
     plt.show()
